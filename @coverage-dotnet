@@ -5,7 +5,7 @@ TEST_PROJECT=$1
 
 # Or have it auto-detect the test project
 if [[ -z "$TEST_PROJECT" ]]; then
-    TEST_PROJECT=$(ls -1 | rg '.*[Tt]ests')
+    TEST_PROJECT=$(ls -1 | rg '(.*\.[Tt]ests)|(EngagersCliTests)')
 fi
 
 if [[ -z "$TEST_PROJECT" ]]; then
