@@ -1,0 +1,59 @@
+#!/bin/bash
+# Script to watch one or more CI pipelines in Codefresh. This makes it easy to
+# see when your pipelines have completed.
+
+PIPELINE_NAME="optimove-microservices/$1"
+REPO_NAME="$2"
+
+if [[ -z "$PIPELINE_NAME" || -z "$REPO_NAME" ]]; then
+    echo "Usage: $0 <pipeline-name> <repo-name>"
+    exit 1
+fi
+
+BUILD_IDS=$(codefresh get builds --pipeline-name "$PIPELINE_NAME" --status running -o json \
+    | jq -r ".[] | select(.repository | contains(\"$REPO_NAME\")) | .id")
+
+if [[ -z "$BUILD_IDS" ]]; then
+    echo "No running builds found."
+    exit 2
+fi
+
+while true; do
+    ALL_STATUS=$(codefresh get builds $BUILD_IDS -o json \
+        | jq -r -c 'if type=="array" then .[] else . end | {trigger, status, totalTime}')
+
+    printf "\r\033[0K\033[0;32m[Running]\033[0m "
+
+    COMPLETED=()
+    FAILED=()
+    TERMINATED=()
+
+    while IFS= read -r s; do
+        state=$(echo $s | jq -r '.status')
+
+        if [[ "$state" == "running" ]]; then
+            trigger=$(echo $s | jq -r '.trigger')
+            printf "$trigger "
+        elif [[ "$state" == "success" ]]; then
+            COMPLETED+=("$trigger")
+        elif [[ "$state" == "error" ]]; then
+            FAILED+=("$trigger")
+        elif [[ "$state" == "terminated" ]]; then
+            TERMINATED+=("$trigger")
+        fi
+    done <<< "$ALL_STATUS"
+
+    for s in "${COMPLETED[@]}"; do
+        printf "\r\033[0K\033[0;34m[Done]\033[0m $s\n"
+    done
+
+    for s in "${FAILED[@]}"; do
+        printf "\r\033[0K\033[0;31m[Failed]\033[0m $s\n"
+    done
+
+    for s in "${TERMINATED[@]}"; do
+        printf "\r\033[0K\033[0;35m\r[Terminated]\033[0m $s\n"
+    done
+
+    sleep 5
+done
