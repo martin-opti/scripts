@@ -28,13 +28,22 @@ current_cursor_row=0
 notify () {
     title="$1"
     body="$2"
-    osascript -e "display notification \"$body\" with title \"$title\" sound name \"Tink\""
+
+    sound="$3"
+    if [[ -z "$sound" ]]; then
+        sound="Purr"
+    fi
+
+    osascript -e "display notification \"$body\" with title \"$title\" sound name \"$sound\""
 }
 
 notified=()
+# Notify that a pipeline completed, with a message about its status.
+# Ensures that we only notify once for a given build.
 notify_completion () {
     build_id="$1"
     message="$2"
+    sound="$3"
 
     # Check if we have already notified completion for this build
     for id in "${notified[@]}"; do
@@ -43,7 +52,7 @@ notify_completion () {
         fi
     done
 
-    notify "$PIPELINE_NAME" "$message"
+    notify "$PIPELINE_NAME" "$message" "$sound"
     notified+=("$build_id")
 }
 
@@ -70,10 +79,10 @@ print_status () {
             notify_completion "$id" "$trigger completed successfully"
         elif [[ "$state" == "error" ]]; then
             printf "${COLOR_RED}[Failed]${RESET_STYLE} $trigger\n"
-            notify_completion "$id" "$trigger failed"
+            notify_completion "$id" "$trigger failed" "Basso"
         elif [[ "$state" == "terminated" ]]; then
             printf "${COLOR_MAGENTA}[Terminated]${RESET_STYLE} $trigger\n"
-            notify_completion "$id" "$trigger was terminated"
+            notify_completion "$id" "$trigger was terminated" "Basso"
         fi
 
         current_cursor_row=$((current_cursor_row + 1))
@@ -84,6 +93,7 @@ check_if_done() {
     status="$1"
 
     completed=0
+    failed=0
     total=0
 
     while IFS= read -r s; do
@@ -93,11 +103,20 @@ check_if_done() {
             completed=$((completed + 1))
         fi
 
+        if [[ "$state" == "error" ]]; then
+            failed=$((failed + 1))
+        fi
+
         total=$((total + 1))
     done <<< "$status"
 
-    if [[ $completed -eq $total ]]; then
-        notify "$PIPELINE_NAME" "All $REPO_NAME pipelines completed"
+    failed_msg=""
+    if [[ "$failed" -gt 0 ]]; then
+        failed_msg=" ($failed failed)"
+    fi
+
+    if [[ "$completed" -eq "$total" ]]; then
+        notify "$PIPELINE_NAME" "All $REPO_NAME pipelines completed${failed_msg}"
         exit 0
     fi
 }
