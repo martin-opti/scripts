@@ -25,6 +25,12 @@ CURSOR_RESET=$(tput cnorm)
 
 current_cursor_row=0
 
+notify () {
+    title="$1"
+    body="$2"
+    osascript -e "display notification \"$body\" with title \"$title\" sound name \"Tink\""
+}
+
 print_status () {
     status="$1"
 
@@ -71,6 +77,7 @@ check_if_done() {
     done <<< "$status"
 
     if [[ $completed -eq $total ]]; then
+        notify "$PIPELINE_NAME" "$REPO_NAME pipelines completed"
         exit 0
     fi
 }
