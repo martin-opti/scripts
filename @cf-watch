@@ -31,6 +31,22 @@ notify () {
     osascript -e "display notification \"$body\" with title \"$title\" sound name \"Tink\""
 }
 
+notified=()
+notify_completion () {
+    build_id="$1"
+    message="$2"
+
+    # Check if we have already notified completion for this build
+    for id in "${notified[@]}"; do
+        if [[ "$id" == "$build_id" ]]; then
+            return 0
+        fi
+    done
+
+    notify "$PIPELINE_NAME" "$message"
+    notified+=("$build_id")
+}
+
 print_status () {
     status="$1"
 
@@ -41,6 +57,7 @@ print_status () {
     done
 
     while IFS= read -r s; do
+        id=$(echo $s | jq -r '.id')
         state=$(echo $s | jq -r '.status')
         trigger=$(echo $s | jq -r '.trigger')
 
@@ -50,10 +67,13 @@ print_status () {
             printf "${COLOR_BLUE}[Running]${RESET_STYLE} $trigger\n"
         elif [[ "$state" == "success" ]]; then
             printf "${COLOR_GREEN}[Done]${RESET_STYLE} $trigger\n"
+            notify_completion "$id" "$trigger completed successfully"
         elif [[ "$state" == "error" ]]; then
             printf "${COLOR_RED}[Failed]${RESET_STYLE} $trigger\n"
+            notify_completion "$id" "$trigger failed"
         elif [[ "$state" == "terminated" ]]; then
             printf "${COLOR_MAGENTA}[Terminated]${RESET_STYLE} $trigger\n"
+            notify_completion "$id" "$trigger was terminated"
         fi
 
         current_cursor_row=$((current_cursor_row + 1))
@@ -77,14 +97,14 @@ check_if_done() {
     done <<< "$status"
 
     if [[ $completed -eq $total ]]; then
-        notify "$PIPELINE_NAME" "$REPO_NAME pipelines completed"
+        notify "$PIPELINE_NAME" "All $REPO_NAME pipelines completed"
         exit 0
     fi
 }
 
 
 # Script args
-PIPELINE_NAME="optimove-microservices/$1"
+PIPELINE_NAME="$1"
 REPO_NAME="$2"
 
 if [[ -z "$PIPELINE_NAME" || -z "$REPO_NAME" ]]; then
@@ -93,7 +113,7 @@ if [[ -z "$PIPELINE_NAME" || -z "$REPO_NAME" ]]; then
 fi
 
 # Find running builds for given pipeline and repo
-BUILD_IDS=$(codefresh get builds --pipeline-name "$PIPELINE_NAME" --status running -o json \
+BUILD_IDS=$(codefresh get builds --pipeline-name "optimove-microservices/$PIPELINE_NAME" --status running -o json \
     | jq -r "if type==\"array\" then .[] else . end | select(.repository | contains(\"$REPO_NAME\")) | .id")
 
 if [[ -z "$BUILD_IDS" ]]; then
@@ -107,7 +127,7 @@ trap "printf $CURSOR_RESET" EXIT
 
 while true; do
     status=$(codefresh get builds $BUILD_IDS -o json \
-        | jq -r -c 'if type=="array" then .[] else . end | {trigger, status, totalTime}')
+        | jq -r -c 'if type=="array" then .[] else . end | {id, trigger, status, totalTime}')
 
     print_status "$status"
     check_if_done "$status"
