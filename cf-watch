@@ -18,6 +18,7 @@ COLOR_BLUE=$(tput setaf 4)
 COLOR_MAGENTA=$(tput setaf 5)
 COLOR_CYAN=$(tput setaf 6)
 COLOR_WHITE=$(tput setaf 7)
+COLOR_DARK_GRAY=$(tput setaf 8)
 RESET_STYLE=$(tput sgr0)
 
 CURSOR_INVISIBLE=$(tput civis)
@@ -70,18 +71,20 @@ print_status () {
         state=$(echo $s | jq -r '.status')
         trigger=$(echo $s | jq -r '.trigger')
 
+        url="https://g.codefresh.io/build/${id}"
+
         printf "${ERASERIGHT}"
 
         if [[ "$state" == "running" ]]; then
-            printf "${COLOR_BLUE}[Running]${RESET_STYLE} $trigger\n"
+            printf "${COLOR_BLUE}[Running]${RESET_STYLE} $trigger ${COLOR_DARK_GRAY}($url)${RESET_STYLE}\n"
         elif [[ "$state" == "success" ]]; then
-            printf "${COLOR_GREEN}[Done]${RESET_STYLE} $trigger\n"
+            printf "${COLOR_GREEN}[Done]${RESET_STYLE} $trigger ${COLOR_DARK_GRAY}($url)${RESET_STYLE}\n"
             notify_completion "$id" "$trigger completed successfully"
         elif [[ "$state" == "error" ]]; then
-            printf "${COLOR_RED}[Failed]${RESET_STYLE} $trigger\n"
+            printf "${COLOR_RED}[Failed]${RESET_STYLE} $trigger ${COLOR_DARK_GRAY}($url)${RESET_STYLE}\n"
             notify_completion "$id" "$trigger failed" "Basso"
         elif [[ "$state" == "terminated" ]]; then
-            printf "${COLOR_MAGENTA}[Terminated]${RESET_STYLE} $trigger\n"
+            printf "${COLOR_MAGENTA}[Terminated]${RESET_STYLE} $trigger ${COLOR_DARK_GRAY}($url)${RESET_STYLE}\n"
             notify_completion "$id" "$trigger was terminated" "Basso"
         fi
 
