@@ -1,0 +1,77 @@
+#!/bin/bash
+# Script to easily get a work item ID from Azure DevOps.
+# Fetches all work items from the current or next sprint assigned to me,
+# and presents these as a list to choose from. Outputs the ID of the selected
+# work item.
+#
+# Pass the --pr flag to output in AB#xxxxxx format.
+
+# "Bash strict mode": http://redsymbol.net/articles/unofficial-bash-strict-mode/#solution-positional-parameters
+set -euo pipefail
+IFS=$'\n\t'
+
+mode=${1:-}
+
+case "$mode" in
+    "--pr")
+        mode="pr"
+        ;;
+    "")
+        mode="default"
+        ;;
+    *)
+        echo "Invalid parameter '${mode}'"
+        exit 1
+        ;;
+esac
+
+if [[ -z "${ADO_PAT:-}" ]]; then
+    echo "ADO_PAT environment variable must be set with an ADO access token."
+    exit 2
+fi
+
+# Get IDs of all work items assigned to me in the current or next sprint
+workitem_ids=$(curl 'https://mobius.visualstudio.com/Backstage/_apis/wit/wiql' \
+    -X POST \
+    -H 'Accept: application/json; api-version=7.1' \
+    -u ":$ADO_PAT" \
+    --json '
+    {
+        "query": "SELECT
+            [System.Id]
+            FROM workitems
+            WHERE
+            (
+                [System.AssignedTo] = @me
+                AND (
+                    [System.IterationPath] = @currentIteration(\"[Backstage]\\Team 30 - Engage Platform <id:08f2c0a1-fff3-473b-947e-0358ae218e7f>\")
+                    OR [System.IterationPath] = @currentIteration(\"[Backstage]\\Team 30 - Engage Platform <id:08f2c0a1-fff3-473b-947e-0358ae218e7f>\") + 1
+                )
+            )"
+    }' 2>/dev/null \
+    | jq -r '.workItems | map(.id) | join(",")')
+
+# Get details of all those work items
+workitems=$(curl "https://mobius.visualstudio.com/Backstage/_apis/wit/workitems?ids=${workitem_ids}" \
+    -H 'Accept: application/json; api-version=7.1' \
+    -u ":$ADO_PAT" \
+    2>/dev/null \
+    | jq '.value | map({id, title: .fields.["System.Title"], state: .fields.["System.State"]})')
+
+# Fuzzy select a work item
+selected=$(echo $workitems \
+    | jq -r '.[] | "\(.id) \(.title) (\(.state))"' \
+    | fzf --style minimal)
+
+# Get just the ID
+selected_id="${selected::6}"
+
+# Final output
+case "$mode" in
+    "pr")
+        echo "AB#${selected_id}"
+        ;;
+    *)
+        echo "$selected_id"
+        ;;
+esac
