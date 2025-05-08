@@ -21,9 +21,6 @@ COLOR_WHITE=$(tput setaf 7)
 COLOR_DARK_GRAY=$(tput setaf 8)
 RESET_STYLE=$(tput sgr0)
 
-CURSOR_INVISIBLE=$(tput civis)
-CURSOR_RESET=$(tput cnorm)
-
 current_cursor_row=0
 
 notify () {
@@ -124,16 +121,17 @@ check_if_done() {
     fi
 }
 
-# Don't show cursor in the output
-printf "$CURSOR_INVISIBLE"
-trap "printf $CURSOR_RESET" EXIT
-
 # Script args
 PIPELINE_NAME="$1"
 REPO_NAME="$2"
 
+if [[ -z "$REPO_NAME" ]]; then
+    # Infer repo name from current git directory
+    REPO_NAME=$(git remote get-url origin | sed -e 's|^.*/\(.*\)\.git$|\1|')
+fi
+
 if [[ -z "$PIPELINE_NAME" || -z "$REPO_NAME" ]]; then
-    echo "Usage: $0 <pipeline-name> <repo-name>"
+    echo "Usage: $0 pipeline-name [repo-name]"
     exit 1
 fi
 
