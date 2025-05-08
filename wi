@@ -63,15 +63,14 @@ selected=$(echo $workitems \
     | jq -r '.[] | "\(.id) \(.title) (\(.state))"' \
     | fzf --style minimal)
 
-# Get just the ID
-selected_id="${selected::6}"
-
 # Final output
 case "$mode" in
     "pr")
-        echo "AB#${selected_id}"
+        # Output in PR title format
+        echo "AB#${selected}" | sed 's/ (.*)$//'
         ;;
     *)
-        echo "$selected_id"
+        # Get just the ID
+        echo "${selected::6}"
         ;;
 esac
