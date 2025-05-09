@@ -10,19 +10,21 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Hello world
-        run: echo "Hello, world!"
       - name: Run tests
         run: |
           echo "Running tests..."
-          sleep 20
+          sleep 30
           echo "Tests passed!"
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - name: Deploy
         run: |
           echo "Shipping it..."
-          sleep 20
+          sleep 30
           echo "All done!"
