@@ -1,0 +1,28 @@
+name: dummy-workflow
+
+# Controls when the workflow will run
+on:
+  push:
+    branches:
+      - main
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Hello world
+        run: echo "Hello, world!"
+      - name: Run tests
+        run: |
+          echo "Running tests..."
+          sleep 20
+          echo "Tests passed!"
+      - name: Deploy
+        run: |
+          echo "Shipping it..."
+          sleep 20
+          echo "All done!"
