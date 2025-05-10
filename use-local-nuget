@@ -10,8 +10,11 @@ if [[ -z "$PACKAGE_NAME" ]]; then
     exit 1
 fi
 
+echo "> ./update-nuget-packages $PACKAGE_NAME"
 ./update-nuget-packages "$PACKAGE_NAME"
 
+echo "> dotnet nuget locals --clear all"
 dotnet nuget locals --clear all
 
+echo "> ./update-nuget-packages $PACKAGE_NAME -v 1.0.0"
 ./update-nuget-packages "$PACKAGE_NAME" -v 1.0.0
