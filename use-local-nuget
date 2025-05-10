@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -euo pipefail
+IFS=$'\n\t'
+
+PACKAGE_NAME="${1:-}"
+
+if [[ -z "$PACKAGE_NAME" ]]; then
+    echo "Usage: $0 package-name"
+    exit 1
+fi
+
+./update-nuget-packages "$PACKAGE_NAME"
+
+dotnet nuget locals --clear all
+
+./update-nuget-packages "$PACKAGE_NAME" -v 1.0.0
