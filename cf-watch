@@ -22,7 +22,7 @@ notify_completion () {
     sound="${3:-}"
 
     # Check if we have already notified completion for this build
-    for id in "${notified[@]}"; do
+    for id in "${notified[@]-}"; do
         if [[ "$id" == "$build_id" ]]; then
             return 0
         fi
