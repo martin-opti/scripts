@@ -16,6 +16,9 @@ case "$mode" in
     "--pr")
         mode="pr"
         ;;
+    "--url")
+        mode="url"
+        ;;
     "")
         mode="default"
         ;;
@@ -64,13 +67,21 @@ selected=$(echo $workitems \
     | fzf --style minimal)
 
 # Final output
+output=""
 case "$mode" in
     "pr")
         # Output in PR title format
-        echo "AB#${selected}" | sed 's/ (.*)$//'
+        output=$(printf "AB#${selected}" | sed 's/ (.*)$//')
+        ;;
+    "url")
+        # Output link to work item
+        output="https://mobius.visualstudio.com/Backstage/_workitems/edit/${selected::6}"
         ;;
     *)
         # Get just the ID
-        echo "${selected::6}"
+        output="${selected::6}"
         ;;
 esac
+
+echo "$output"
+printf "$output" | pbcopy
