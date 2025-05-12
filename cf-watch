@@ -2,6 +2,10 @@
 # Script to watch one or more CI pipelines in Codefresh. This makes it easy to
 # see when your pipelines have completed.
 
+# "Bash strict mode": http://redsymbol.net/articles/unofficial-bash-strict-mode/#solution-positional-parameters
+set -euo pipefail
+IFS=$'\n\t'
+
 # Provides terminal escape codes.
 . ~/dotfiles/bash-libs/tput.bash
 # Provides the `notify` command.
@@ -15,7 +19,7 @@ notified=()
 notify_completion () {
     build_id="$1"
     message="$2"
-    sound="$3"
+    sound="${3:-}"
 
     # Check if we have already notified completion for this build
     for id in "${notified[@]}"; do
@@ -97,7 +101,7 @@ check_if_done() {
 
 # Script args
 PIPELINE_NAME="$1"
-REPO_NAME="$2"
+REPO_NAME="${2:-}"
 
 if [[ -z "$REPO_NAME" ]]; then
     # Infer repo name from current git directory
