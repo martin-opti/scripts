@@ -24,8 +24,11 @@ fi
 COVERAGE_PATH="$TEST_PROJECT/TestResults/$TESTRUN_ID/coverage.cobertura.xml"
 
 # Generate coverage report
-reportgenerator -reports:$COVERAGE_PATH -targetdir:"coveragereport" -reporttypes:Html
+reportgenerator -reports:$COVERAGE_PATH -targetdir:"coveragereport" -historydir:"coveragereport/history" -reporttypes:"Html;TextDeltaSummary"
 
 echo "Coverage report generated."
 echo "Open it with:"
 echo "    open coveragereport/index.html"
+echo
+echo "Coverage Summary:"
+cat coveragereport/DeltaSummary.txt | rg "Description|Line coverage|Branch coverage|Method coverage" --color=never
